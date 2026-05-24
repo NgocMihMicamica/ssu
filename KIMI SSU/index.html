@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SSU CTV Assignment & Attendance</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script defer src="script.js"></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="hero">
+        <div class="hero__content">
+          <p class="eyebrow">SSU CTV Management</p>
+          <h1>Quản lý phân công và chấm công CTV SSU</h1>
+          <p class="hero__description">
+            Web app chạy hoàn toàn trên trình duyệt để nhập dữ liệu Excel/CSV, phân công C1 và DDV,
+            chấm công thủ công hoặc qua ảnh, tính Rank tổng và xuất kết quả ra Excel.
+          </p>
+        </div>
+        <div class="hero__stats">
+          <div class="stat-card">
+            <span class="stat-card__label">C1</span>
+            <strong>Ưu tiên tên in đậm / viết hoa</strong>
+            <small>Chấm công +1 / -1</small>
+          </div>
+          <div class="stat-card">
+            <span class="stat-card__label">DDV</span>
+            <strong>Ghép theo lịch và số lần đi</strong>
+            <small>Chỉ khớp ca Sáng / Chiều</small>
+          </div>
+          <div class="stat-card">
+            <span class="stat-card__label">Export</span>
+            <strong>Xuất Excel 1 chạm</strong>
+            <small>Không cần backend</small>
+          </div>
+        </div>
+      </header>
+
+      <main class="layout">
+        <section class="panel">
+          <div class="panel__header">
+            <h2>1. Nạp dữ liệu nguồn</h2>
+            <p>Upload file Excel/CSV để hệ thống đọc sheet, chuẩn hóa dữ liệu và dựng bảng phân công.</p>
+          </div>
+
+          <div class="upload-grid">
+            <label class="upload-card">
+              <span>CTV SSU.xlsx</span>
+              <strong>Sheet: Lịch ctv đăng kí</strong>
+              <input id="c1File" type="file" accept=".xlsx,.xls,.csv" />
+            </label>
+
+            <label class="upload-card">
+              <span>BCS CTV.xlsx</span>
+              <strong>Sheet: DDV</strong>
+              <input id="ddvFile" type="file" accept=".xlsx,.xls,.csv" />
+            </label>
+
+            <label class="upload-card">
+              <span>Phân công DDV</span>
+              <strong>Excel/CSV lịch hiện có</strong>
+              <input id="ddvPlanFile" type="file" accept=".xlsx,.xls,.csv" />
+            </label>
+
+            <label class="upload-card">
+              <span>Ảnh chấm công</span>
+              <strong>Chứng cứ đi đủ / vắng</strong>
+              <input id="attendanceImages" type="file" accept="image/*" multiple />
+            </label>
+          </div>
+
+          <div class="toolbar">
+            <button id="parseButton" class="btn btn--primary">Đọc và xử lý dữ liệu</button>
+            <button id="sampleButton" class="btn btn--ghost">Tải dữ liệu mẫu</button>
+            <button id="exportButton" class="btn btn--accent">Xuất kết quả Excel</button>
+          </div>
+
+          <div class="notice" id="statusBox">
+            Chưa có dữ liệu. Hãy upload file và bấm <strong>Đọc và xử lý dữ liệu</strong>.
+          </div>
+        </section>
+
+        <section class="grid-two">
+          <article class="panel">
+            <div class="panel__header">
+              <h2>2. Phân công C1</h2>
+              <p>Ưu tiên tên viết hoa / đánh dấu nổi bật, sau đó sắp xếp theo lịch và lịch sử đi trực.</p>
+            </div>
+            <div class="mini-toolbar">
+              <select id="c1ShiftFilter">
+                <option value="all">Tất cả ca</option>
+                <option value="Sang">Sáng</option>
+                <option value="Chieu">Chiều</option>
+                <option value="Toi">Tối</option>
+              </select>
+              <input id="c1Search" type="search" placeholder="Tìm tên C1" />
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>STT</th>
+                    <th>Họ tên</th>
+                    <th>Ca</th>
+                    <th>Ưu tiên</th>
+                    <th>Trạng thái</th>
+                    <th>Điểm</th>
+                    <th>Chấm công</th>
+                  </tr>
+                </thead>
+                <tbody id="c1TableBody"></tbody>
+              </table>
+            </div>
+          </article>
+
+          <article class="panel">
+            <div class="panel__header">
+              <h2>3. Phân công DDV</h2>
+              <p>Khớp người mới hoặc người đi ít, chỉ ghép đúng ca Sáng / Chiều từ lịch và file DDV.</p>
+            </div>
+            <div class="mini-toolbar">
+              <select id="ddvShiftFilter">
+                <option value="all">Tất cả ca</option>
+                <option value="Sang">Sáng</option>
+                <option value="Chieu">Chiều</option>
+              </select>
+              <input id="ddvSearch" type="search" placeholder="Tìm tên DDV" />
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>STT</th>
+                    <th>Họ tên</th>
+                    <th>Ca</th>
+                    <th>Đi trước đó</th>
+                    <th>Ưu tiên</th>
+                    <th>Gán lịch</th>
+                    <th>Tick đã đi</th>
+                  </tr>
+                </thead>
+                <tbody id="ddvTableBody"></tbody>
+              </table>
+            </div>
+          </article>
+        </section>
+
+        <section class="panel">
+          <div class="panel__header">
+            <h2>4. Bảng điểm Rank tổng</h2>
+            <p>Tổng hợp từ trạng thái chấm công, số lần đi, và quy tắc ưu tiên vận hành.</p>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>STT</th>
+                  <th>Họ tên</th>
+                  <th>Nhóm</th>
+                  <th>Ca</th>
+                  <th>Số lần đi</th>
+                  <th>Điểm Rank</th>
+                  <th>Ghi chú</th>
+                </tr>
+              </thead>
+              <tbody id="rankTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel__header">
+            <h2>5. Ghi chú dữ liệu & ảnh</h2>
+            <p>Danh sách ảnh upload và log xử lý sẽ hiển thị ở đây để đối chiếu nhanh khi kiểm tra.</p>
+          </div>
+          <div class="notes-grid">
+            <div>
+              <h3>Ảnh chấm công</h3>
+              <div id="imageList" class="image-list"></div>
+            </div>
+            <div>
+              <h3>Log xử lý</h3>
+              <pre id="logBox" class="log-box">Chưa có log.</pre>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>
